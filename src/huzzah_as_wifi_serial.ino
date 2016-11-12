@@ -13,8 +13,13 @@
  * S SSID param_ssid(string)
  * S KEY param_key(string)
  * S IP_ADD param_ip_addr(IP Adress: static IP address)
- * S TRANSMIT type(int): set transmission type: ANSWER: S TRANSMIT OK 
- * 
+ * S TRANSMIT type(int): set transmission type: ANSWER: S TRANSMIT OK
+ * S CONNECT_TO_IP param_address: set address (ip/name) of the server
+ *   		   		  you want to connect to
+ * S CONNECT_TO_PORT param_port:  set port of the server
+ *   		   		  you want to connect to
+ * Each "S" command receives an answer: S COMMAND OK/NOK
+ *
  * "G" commands to get parameters and status
  *  G STATUS --> ANSWER: G STATUS OK param_status(number)
  *  G IP_ADD --> ANSWER: G IP_ADD OK param_ip_addr(ip address, can be -1 if no IP is set)

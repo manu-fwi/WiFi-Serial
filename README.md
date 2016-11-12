@@ -17,6 +17,11 @@ Command mode:
  * S KEY param_key(string)
  * S IP_ADD param_ip_addr(IP Adress: static IP address)
  * S TRANSMIT type(int): set transmission type: ANSWER: S TRANSMIT OK 
+ * S CONNECT_TO_IP param_address: set address (ip/name) of the server
+ *   		   		  you want to connect to
+ * S CONNECT_TO_PORT param_port:  set port of the server
+ *   		   		  you want to connect to
+ * Each "S" command receives an answer: S COMMAND OK/NOK
  * 
  * "G" commands to get parameters and status
  *  G STATUS --> ANSWER: G STATUS OK param_status(number)
@@ -30,3 +35,24 @@ Command mode:
  * A FLUSH : Flush the full transmlit buffer --> ANSWER:  A FLUSH OK nb_bytes(int) [+] number of bytes in the buffer that got sent,
  *                                                        a "+" sign means there are still chars in the tx buf, probably an error occured
  */
+
+
+A typical connection:
+
+pin 5 to HIGH:
+
+->S SSID your_ssid
+<-S SSID OK
+->S KEY you_KEY
+<-S KEY OK
+->A AP_CONNECT
+<-A AP_CONNECT
+->S
+->A CONNECT
+<-A CONNECT OK
+There you are connected to the server you wanted, just have to switch to byte stream mode and use the serial port to send/receive.
+pin 5 to LOW
+
+Serial reads and writes.
+
+And voila!
