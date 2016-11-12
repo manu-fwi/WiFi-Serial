@@ -42,12 +42,25 @@ A typical connection:
 pin 5 to HIGH:
 
 ->S SSID your_ssid
+
 <-S SSID OK
+
 ->S KEY you_KEY
+
 <-S KEY OK
+
 ->A AP_CONNECT
-<-A AP_CONNECT
-->S
+
+<-A AP_CONNECT OK
+
+->S CONNECT_TO_IP ip/name of the server you want to connect to
+
+<-S CONNECT_TO_IP OK
+
+->S CONNECT_TO_PORT port of the server you want to connect to
+
+<-S CONNECT_TO_PORT OK
+
 ->A CONNECT
 <-A CONNECT OK
 There you are connected to the server you wanted, just have to switch to byte stream mode and use the serial port to send/receive.
