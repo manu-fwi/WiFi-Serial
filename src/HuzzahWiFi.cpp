@@ -3,7 +3,7 @@
 
 HuzzahWiFi Huzzah;
 
-HuzzahWiFi::HuzzahWiFi(): debug(false),port(-1),server_add_type(SERVER_ADD_NONE),nb_networks(0)
+HuzzahWiFi::HuzzahWiFi(): port(-1),server_add_type(SERVER_ADD_NONE),nb_networks(0)
 {
   // Init all string to "" and put null terminator at the end
   WiFi_SSID[0]='\0';

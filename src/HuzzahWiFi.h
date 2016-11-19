@@ -16,16 +16,6 @@ class HuzzahWiFi
 
   HuzzahWiFi();
 
-  void set_debug(bool dbg)
-  {
-    debug = dbg;
-  }
-  void debug_print(const char * msg)
-  {
-    if (debug)
-      Serial.print("DEBUG(HUZZAH-WIFI):");
-      Serial.println(msg);
-  }
   void set_ssid(char * SSID)
   {
     strncpy(WiFi_SSID, SSID, WiFi_SSID_L);
@@ -89,11 +79,8 @@ class HuzzahWiFi
   int port;
   int nb_networks;
   byte server_add_type;
-  bool debug;
 };
 
 extern HuzzahWiFi Huzzah;
-
-void DEBUG(const char * msg);
 
 #endif // WIFI_STATUS_H

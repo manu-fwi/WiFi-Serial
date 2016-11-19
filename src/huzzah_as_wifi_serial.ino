@@ -1,4 +1,4 @@
-#include <ESP8266WiFi.h>
+  #include <ESP8266WiFi.h>
 
 #include "config.h"
 #include "HuzzahWiFi.h"
@@ -8,18 +8,16 @@
  * Digital pin 5: HIGH -> command mode
  *                LOW ->  byte stream mode
  *                
- * Commands: Answers: "S OK" or "S NOK"
+ * Each "S" COMMAND receives an answer: S COMMAND OK/NOK
  * "S" commands to set different parameters
  * S SSID param_ssid(string)
  * S KEY param_key(string)
  * S IP_ADD param_ip_addr(IP Adress: static IP address)
- * S TRANSMIT type(int): set transmission type: ANSWER: S TRANSMIT OK
- * S CONNECT_TO_IP param_address: set address (ip/name) of the server
- *   		   		  you want to connect to
- * S CONNECT_TO_PORT param_port:  set port of the server
- *   		   		  you want to connect to
- * Each "S" command receives an answer: S COMMAND OK/NOK
- *
+ * S TRANSMIT type(int): set transmission type: ANSWER: S TRANSMIT OK 
+ * S REMOTE_IP param_ip_addr : set the IP/name of the remote server  --> ANSWER: S REMOTE_IP OK
+ * S REMOTE_PORT port(int) : set the port number of the remote server -> ANSWER : S REMOTE_PORT OK
+ * S SERVER_PORT (int): Set the port number we will be listening to
+ * 
  * "G" commands to get parameters and status
  *  G STATUS --> ANSWER: G STATUS OK param_status(number)
  *  G IP_ADD --> ANSWER: G IP_ADD OK param_ip_addr(ip address, can be -1 if no IP is set)
@@ -31,21 +29,21 @@
  * A CONNECT --> ANSWER: A CONNECT OK or A CONNECT NOK
  * A FLUSH : Flush the full transmlit buffer --> ANSWER:  A FLUSH OK nb_bytes(int) [+] number of bytes in the buffer that got sent,
  *                                                        a "+" sign means there are still chars in the tx buf, probably an error occured
+ * A LISTEN  -->> ANSWER: A LISTEN OK/NOK : listen to incoming connection on the port set by S SET_SERVER_PORT
  */
 
- /*
-  * Strings in progmem
-  */
 
 const char ANS_NOK_UNK_CMD[] PROGMEM=" NOK UNKNOWN COMMAND";
 const char ACT_AP_CONNECT[] PROGMEM="AP_CONNECT";
 const char ACT_SCAN[] PROGMEM="SCAN";
 const char GET_NETW[] PROGMEM = "NETWORK";
-const char SET_SERVER_IP[] PROGMEM = "CONNECT_TO_IP";
-const char SET_SERVER_PORT[] PROGMEM = "CONNECT_TO_PORT";
+const char SET_REMOTE_IP[] PROGMEM = "REMOTE_IP";
+const char SET_REMOTE_PORT[] PROGMEM = "REMOTE_PORT";
 const char ACT_CONNECT[] PROGMEM = "CONNECT";
 const char GET_CONECTED[] PROGMEM="G IS_CONNECTED";
 const char ACT_FLUSH[] PROGMEM="FLUSH ";
+const char SET_SERVER_PORT[] PROGMEM = "SERVER_PORT";
+
 
 #define CMD_L 100
 char cmd[CMD_L+1];
@@ -67,7 +65,7 @@ void setup() {
   tx_buf[BUF_L]='\0';
   Serial.begin(115200);
   while(!Serial);
-  //WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);
   last_rx = last_tx = millis();
 }
 
@@ -76,16 +74,6 @@ size_t tx_buf_send()
 {
   if (client.connected() && (tx_buf_start!=tx_buf_end)) {
     unsigned int end = (tx_buf_start<tx_buf_end) ? tx_buf_end : BUF_L;
-    Serial.print("tx_buf_send:");
-    Serial.print(tx_buf_start);
-    Serial.print(" ");
-    Serial.print(tx_buf_end);
-    Serial.print(" ");
-    Serial.print(tx_to_send);
-    Serial.print(" ");
-    Serial.println(client.connected()?"connected":"not connected");
-    Serial.print("writing:");
-    Serial.println((char*)tx_buf+tx_buf_start);
     size_t written = client.write((const char*)&tx_buf[tx_buf_start],(size_t)(end-tx_buf_start));
     size_t written_again = 0;
     tx_to_send-=written;
@@ -115,8 +103,8 @@ void set_command(char * cmd)
     Serial.println(cmd+6);
     Serial.print("S KEY OK");
   }
-  else if (strncmp_P(cmd+2, SET_SERVER_IP,strlen_P(SET_SERVER_IP))==0) {
-    char * current=cmd+3+strlen_P(SET_SERVER_IP), * beginning = current;
+  else if (strncmp_P(cmd+2, SET_REMOTE_IP,strlen_P(SET_REMOTE_IP))==0) {
+    char * current=cmd+3+strlen_P(SET_REMOTE_IP), * beginning = current;
     char * new_pos=NULL;
     byte i = 0;
     int ip_nbs[4];
@@ -129,14 +117,14 @@ void set_command(char * cmd)
       i++;
     }
     Serial.print("S ");
-    Serial.print(FPSTR(SET_SERVER_IP));
+    Serial.print(FPSTR(SET_REMOTE_IP));
     Serial.println(" OK");
     if (i<4) // Does not look like an IP address so its a normal address
       Huzzah.set_server_name(beginning);
     else Huzzah.set_server_ip(IPAddress(ip_nbs[0],ip_nbs[1],ip_nbs[2],ip_nbs[3]));
   }
-  else if (strncmp_P(cmd+2, SET_SERVER_PORT,strlen_P(SET_SERVER_PORT))==0) {
-    char * current=cmd+3+strlen_P(SET_SERVER_PORT), * beginning = current;
+  else if (strncmp_P(cmd+2, SET_REMOTE_PORT,strlen_P(SET_REMOTE_PORT))==0) {
+    char * current=cmd+3+strlen_P(SET_REMOTE_PORT), * beginning = current;
     char * new_pos=NULL;
     byte i = 0;
     int port = strtol(current,&new_pos,10);
@@ -144,7 +132,7 @@ void set_command(char * cmd)
         port = -1;
     if ((port>0) && (port<=65535)) {
       Serial.print("S ");
-      Serial.print(FPSTR(SET_SERVER_IP));
+      Serial.print(FPSTR(SET_REMOTE_PORT));
       Serial.println(" OK");
       Huzzah.set_server_port(port);
     }
@@ -196,13 +184,13 @@ void action_commands(char * cmd)
     if (Huzzah.get_server_add_type()==SERVER_ADD_NAME)
     {
       String s = String("Connection to ")+Huzzah.get_server_name()+":";
-      Huzzah.debug_print((s+String(Huzzah.get_server_port())).c_str());
+      DEBUG((s+String(Huzzah.get_server_port())).c_str());
       success = client.connect(Huzzah.get_server_name(),Huzzah.get_server_port());
     }
     else if (Huzzah.get_server_add_type()==SERVER_ADD_IP)
     {
       String s = "Connection to "+Huzzah.get_server_ip();
-      Huzzah.debug_print((s+":"+String(Huzzah.get_server_port())).c_str());
+      DEBUG((s+":"+String(Huzzah.get_server_port())).c_str());
       success = client.connect(Huzzah.get_server_ip(),Huzzah.get_server_port());
     }
     Serial.print("A ");
