@@ -63,9 +63,14 @@ pin 5 to HIGH:
 
 ->A CONNECT
 <-A CONNECT OK
+
 There you are connected to the server you wanted, just have to switch to byte stream mode and use the serial port to send/receive.
+
 pin 5 to LOW
 
 Serial reads and writes.
 
 And voila!
+
+TODO:
+* Add a way to have a server using the Server class
