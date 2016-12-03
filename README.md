@@ -32,7 +32,7 @@ Command mode:
  * A AP_CONNECT : Connect to WiFi AP  --> ANSWER: "A AP_CONNECT OK" or "A AP_CONNECT NOK";
  * A SCAN : Scan networks --> ANSWER: A SCAN OK param_nb_netw(int) or A SCAN NOK
  * A CONNECT --> ANSWER: A CONNECT OK or A CONNECT NOK
- * A FLUSH : Flush the full transmlit buffer --> ANSWER:  A FLUSH OK nb_bytes(int) [+] number of bytes in the buffer that got sent,
+ * A FLUSH : Flush the full transmit buffer --> ANSWER:  A FLUSH OK nb_bytes(int) [+] number of bytes in the buffer that got sent,
  *                                                        a "+" sign means there are still chars in the tx buf, probably an error occured
  */
 
