@@ -43,6 +43,7 @@ const char ACT_CONNECT[] PROGMEM = "CONNECT";
 const char GET_CONECTED[] PROGMEM="G IS_CONNECTED";
 const char ACT_FLUSH[] PROGMEM="FLUSH ";
 const char SET_SERVER_PORT[] PROGMEM = "SERVER_PORT";
+const char ACT_LISTEN[] PROGMEM = "LISTEN";
 
 
 #define CMD_L 100
@@ -120,8 +121,8 @@ void set_command(char * cmd)
     Serial.print(FPSTR(SET_REMOTE_IP));
     Serial.println(" OK");
     if (i<4) // Does not look like an IP address so its a normal address
-      Huzzah.set_server_name(beginning);
-    else Huzzah.set_server_ip(IPAddress(ip_nbs[0],ip_nbs[1],ip_nbs[2],ip_nbs[3]));
+      Huzzah.set_remote_name(beginning);
+    else Huzzah.set_remote_ip(IPAddress(ip_nbs[0],ip_nbs[1],ip_nbs[2],ip_nbs[3]));
   }
   else if (strncmp_P(cmd+2, SET_REMOTE_PORT,strlen_P(SET_REMOTE_PORT))==0) {
     char * current=cmd+3+strlen_P(SET_REMOTE_PORT), * beginning = current;
@@ -134,7 +135,7 @@ void set_command(char * cmd)
       Serial.print("S ");
       Serial.print(FPSTR(SET_REMOTE_PORT));
       Serial.println(" OK");
-      Huzzah.set_server_port(port);
+      Huzzah.set_remote_port(port);
     }
   }
   else {
@@ -183,15 +184,17 @@ void action_commands(char * cmd)
     bool success=false;
     if (Huzzah.get_server_add_type()==SERVER_ADD_NAME)
     {
-      String s = String("Connection to ")+Huzzah.get_server_name()+":";
-      DEBUG((s+String(Huzzah.get_server_port())).c_str());
-      success = client.connect(Huzzah.get_server_name(),Huzzah.get_server_port());
+      String s = String("Connection to ")+Huzzah.get_remote_name()+":";
+      DEBUG((s+String(Huzzah.get_remote_port())).c_str());
+      success = Huzzah.client.connect(Huzzah.get_remote_name(),Huzzah.get_remote_port());
     }
     else if (Huzzah.get_server_add_type()==SERVER_ADD_IP)
     {
-      String s = "Connection to "+Huzzah.get_server_ip();
-      DEBUG((s+":"+String(Huzzah.get_server_port())).c_str());
-      success = client.connect(Huzzah.get_server_ip(),Huzzah.get_server_port());
+      String s = "Connection to "+Huzzah.get_remote_ip();
+      DEBUG((s+":"+String(Huzzah.get_remote_port())).c_str());
+      if (Huzzah.server) // we are in server mode, kill it then
+        Huzzah.stop_server();
+      success = Huzzah.client.connect(Huzzah.get_remote_ip(),Huzzah.get_remote_port());
     }
     Serial.print("A ");
     Serial.print(FPSTR(ACT_CONNECT));
@@ -200,7 +203,7 @@ void action_commands(char * cmd)
     else Serial.println(" NOK");
   } else if (strncmp_P(cmd+2,ACT_FLUSH,strlen_P(ACT_FLUSH))==0) {
     int nb_bytes = 0;
-    if (client.connected()) {
+    if (Huzzah.client.connected()) {
       long unsigned int beg = millis();
       while ((tx_to_send>0) && (millis()<beg+5000))   // FIXME: flush timeout hardcoded as 5s
         nb_bytes += tx_buf_send();
@@ -213,6 +216,10 @@ void action_commands(char * cmd)
       Serial.println(" +");
     else
       Serial.println("");
+  } else if (strncmp_P(cmd+2,ACT_LISTEN,strlen_P(ACT_LISTEN))==0) {
+    if (Huzzah.server_listen())
+      Serial.println(" NOK");
+    else Serial.println(" OK");
   } else {
     Serial.print("A ");
     Serial.println(FPSTR(ANS_NOK_UNK_CMD));
@@ -248,19 +255,24 @@ void loop() {
         }
     } else {
       char c = Serial.read();
-      if (client.connected()) {// Text to send, make sure we are connected
+      if (Huzzah.client.connected()) {// Text to send, make sure we are connected
        if (tx_to_send<BUF_L) {  // its a ring buffer, make sure its not full
           tx_to_send++;
           tx_buf[tx_buf_end++]=c;
           if (tx_buf_end == BUF_L) // we reached the end of the buf let's start over from 0
             tx_buf_end = 0;
         }
-      } // Otherwise do nothing, we might use a digital pin to signal an error
+      } // Otherwise we check if we are in server mode
+      else
+      {
+        if (Huzzah.server)
+          Huzzah.client = Huzzah.server->available();
+      }
     }
   }
-  if (client.connected() && client.available()) {
+  if (Huzzah.client.connected() && Huzzah.client.available()) {
     // Write bytes as they arrive
-    Serial.write(client.read());
+    Serial.write(Huzzah.client.read());
   }
   // Check tx time out and if buffer is almost full
   if ((millis()-last_tx > tx_flush_timeout) || (tx_to_send*3>BUF_L*2 )) {

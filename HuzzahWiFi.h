@@ -13,6 +13,8 @@
 class HuzzahWiFi
 {
   public:
+  WiFiClient client;
+  WiFiServer * server;
 
   HuzzahWiFi();
 
@@ -24,17 +26,17 @@ class HuzzahWiFi
   {
     strncpy(WiFi_PASSWD, PASSWD, WiFi_PASSWD_L);
   }
-  void set_server_ip(IPAddress addr)
+  void set_remote_ip(IPAddress addr)
   {
     server_add_type = SERVER_ADD_IP;
-    server_ip=addr;
+    remote_ip=addr;
   }
-  void set_server_name(const char * ser_name)
+  void set_remote_name(const char * ser_name)
   {
-    strncpy(server_name,ser_name,WiFi_SERVER_NAME_L);
+    strncpy(remote_name,ser_name,WiFi_SERVER_NAME_L);
     server_add_type = SERVER_ADD_NAME;
   }
-  void set_server_port(int _port)
+  void set_remote_port(int _port)
   {
     port = _port;
   }
@@ -49,15 +51,15 @@ class HuzzahWiFi
   int get_nb_networks() {
     return nb_networks;
   }
-  const char * get_server_name()
+  const char * get_remote_name()
   {
-    return server_name;
+    return remote_name;
   }
-  const IPAddress& get_server_ip()
+  const IPAddress& get_remote_ip()
   {
-    return server_ip;
+    return remote_ip;
   }
-  int get_server_port()
+  int get_remote_port()
   {
     return port;
   }
@@ -69,16 +71,36 @@ class HuzzahWiFi
   {
     return server_add_type;
   }
+  void stop_server()
+  {
+    if (server) {
+      delete server;
+      server = NULL;
+    }
+  }
+  bool server_listen()
+  {
+    stop_server();
+    if (port>0) {
+      server = new WiFiServer(port);
+      // Stop the current client
+      client.stop();
+      server->begin();
+      return true;
+    }
+    return false;
+  }
   
   private:
   char WiFi_SSID[WiFi_SSID_L+1];
   char WiFi_PASSWD[WiFi_PASSWD_L+1];
 
-  char server_name[WiFi_SERVER_NAME_L+1];
-  IPAddress server_ip;
-  int port;
+  char remote_name[WiFi_SERVER_NAME_L+1];
+  IPAddress remote_ip;
+  int port;           // remote port if server==NULL, listening port otherwise
   int nb_networks;
   byte server_add_type;
+
 };
 
 extern HuzzahWiFi Huzzah;
