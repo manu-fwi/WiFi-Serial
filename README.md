@@ -73,7 +73,7 @@ pin 5 to LOW
 
 Serial reads and writes.
 
-A typical connection (as a client):
+A typical connection (as a server):
 
 pin 5 to HIGH:
 
@@ -106,7 +106,3 @@ pin 5 to LOW
 Serial reads and writes.
 
 And voila!
-
-
-TODO:
-* Add a way to have a server using the Server class
