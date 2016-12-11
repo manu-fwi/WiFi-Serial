@@ -39,7 +39,7 @@ Command mode:
  */
 
 
-A typical connection:
+A typical connection (as a client):
 
 pin 5 to HIGH:
 
@@ -47,7 +47,7 @@ pin 5 to HIGH:
 
 <-S SSID OK
 
-->S KEY you_KEY
+->S KEY your_KEY
 
 <-S KEY OK
 
@@ -64,6 +64,7 @@ pin 5 to HIGH:
 <-S CONNECT_TO_PORT OK
 
 ->A CONNECT
+
 <-A CONNECT OK
 
 There you are connected to the server you wanted, just have to switch to byte stream mode and use the serial port to send/receive.
@@ -72,7 +73,40 @@ pin 5 to LOW
 
 Serial reads and writes.
 
+A typical connection (as a client):
+
+pin 5 to HIGH:
+
+->S SSID your_ssid
+
+<-S SSID OK
+
+->S KEY your_KEY
+
+<-S KEY OK
+
+->A AP_CONNECT
+
+<-A AP_CONNECT OK
+
+->S CONNECT_TO_IP ip/name of the server you want to connect to
+
+<-S CONNECT_TO_IP OK
+
+->S SERVER_PORT port you want to listen on
+
+->A LISTEN
+
+<-A LISTEN OK
+
+There your server is listening, you just have to switch to byte stream mode and use the serial port to send/receive. Then one client can connect to your server.
+
+pin 5 to LOW
+
+Serial reads and writes.
+
 And voila!
+
 
 TODO:
 * Add a way to have a server using the Server class
