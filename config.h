@@ -8,5 +8,6 @@
 #define ERROR 0x01 << 7
 #define DEBUG(M) { Serial.print("DEBUG(HUZZAH-WIFI):");\
                    Serial.println(M); }
+#define DEBUG(M)
 
 #endif // CONFIG_H

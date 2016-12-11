@@ -58,8 +58,6 @@ byte tx_buf[BUF_L+1];  // buffer receiving bytes from the serial port waiting to
 unsigned int tx_buf_start=0,tx_buf_end=0,tx_to_send=0;
 unsigned long last_tx,tx_flush_timeout=10;  // Default time_out 10 ms around 150 bytes at 115200 bds
 
-WiFiClient client;
-
 void setup() {
   pinMode(CMD_PIN, INPUT);
   cmd[CMD_L]='\0';
@@ -73,16 +71,16 @@ void setup() {
 // Send as many bytes from the tx_buf to the wifi
 size_t tx_buf_send()
 {
-  if (client.connected() && (tx_buf_start!=tx_buf_end)) {
+  if (Huzzah.client.connected() && (tx_buf_start!=tx_buf_end)) {
     unsigned int end = (tx_buf_start<tx_buf_end) ? tx_buf_end : BUF_L;
-    size_t written = client.write((const char*)&tx_buf[tx_buf_start],(size_t)(end-tx_buf_start));
+    size_t written = Huzzah.client.write((const char*)&tx_buf[tx_buf_start],(size_t)(end-tx_buf_start));
     size_t written_again = 0;
     tx_to_send-=written;
     tx_buf_start+=written;
     if (tx_buf_start >= BUF_L) {
       tx_buf_start = 0;
       if (tx_to_send>0) {
-         written_again = client.write((const char*)tx_buf,(size_t)tx_buf_end);
+         written_again = Huzzah.client.write((const char*)tx_buf,(size_t)tx_buf_end);
          tx_buf_start+=written_again;
          tx_to_send-=written_again;
       }
@@ -124,8 +122,16 @@ void set_command(char * cmd)
       Huzzah.set_remote_name(beginning);
     else Huzzah.set_remote_ip(IPAddress(ip_nbs[0],ip_nbs[1],ip_nbs[2],ip_nbs[3]));
   }
-  else if (strncmp_P(cmd+2, SET_REMOTE_PORT,strlen_P(SET_REMOTE_PORT))==0) {
-    char * current=cmd+3+strlen_P(SET_REMOTE_PORT), * beginning = current;
+  else if ((strncmp_P(cmd+2, SET_REMOTE_PORT,strlen_P(SET_REMOTE_PORT))==0) || (strncmp_P(cmd+2, SET_SERVER_PORT,strlen_P(SET_SERVER_PORT))==0)) {
+    char * current;
+    bool serv = false;
+    if (strncmp_P(cmd+2, SET_REMOTE_PORT,strlen_P(SET_REMOTE_PORT))==0)
+      current = cmd+3+strlen_P(SET_REMOTE_PORT);
+    else {
+      current = cmd+3+strlen_P(SET_SERVER_PORT);
+      serv = true;
+    }
+    char * beginning = current;
     char * new_pos=NULL;
     byte i = 0;
     int port = strtol(current,&new_pos,10);
@@ -133,7 +139,10 @@ void set_command(char * cmd)
         port = -1;
     if ((port>0) && (port<=65535)) {
       Serial.print("S ");
-      Serial.print(FPSTR(SET_REMOTE_PORT));
+      if (!serv)
+        Serial.print(FPSTR(SET_REMOTE_PORT));
+      else
+        Serial.print(FPSTR(SET_SERVER_PORT));
       Serial.println(" OK");
       Huzzah.set_remote_port(port);
     }
@@ -217,9 +226,11 @@ void action_commands(char * cmd)
     else
       Serial.println("");
   } else if (strncmp_P(cmd+2,ACT_LISTEN,strlen_P(ACT_LISTEN))==0) {
+    Serial.print("A ");
+    Serial.print(FPSTR(ACT_LISTEN));
     if (Huzzah.server_listen())
-      Serial.println(" NOK");
-    else Serial.println(" OK");
+      Serial.println(" OK");
+    else Serial.println(" NOK");
   } else {
     Serial.print("A ");
     Serial.println(FPSTR(ANS_NOK_UNK_CMD));
@@ -262,14 +273,12 @@ void loop() {
           if (tx_buf_end == BUF_L) // we reached the end of the buf let's start over from 0
             tx_buf_end = 0;
         }
-      } // Otherwise we check if we are in server mode
-      else
-      {
-        if (Huzzah.server)
-          Huzzah.client = Huzzah.server->available();
       }
     }
   }
+  // Check if we are in server mode and then check if a client connected
+  if (Huzzah.server && !Huzzah.client.connected())
+    Huzzah.client = Huzzah.server->available();
   if (Huzzah.client.connected() && Huzzah.client.available()) {
     // Write bytes as they arrive
     Serial.write(Huzzah.client.read());
