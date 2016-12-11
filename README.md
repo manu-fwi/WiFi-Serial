@@ -21,6 +21,7 @@ Command mode:
  *   		   		  you want to connect to
  * S CONNECT_TO_PORT param_port:  set port of the server
  *   		   		  you want to connect to
+ * S SERVER_PORT param_port:	  set port on which your server will listen
  * Each "S" command receives an answer: S COMMAND OK/NOK
  * 
  * "G" commands to get parameters and status
@@ -34,6 +35,7 @@ Command mode:
  * A CONNECT --> ANSWER: A CONNECT OK or A CONNECT NOK
  * A FLUSH : Flush the full transmit buffer --> ANSWER:  A FLUSH OK nb_bytes(int) [+] number of bytes in the buffer that got sent,
  *                                                        a "+" sign means there are still chars in the tx buf, probably an error occured
+ * A LISTEN:			begin to listen on the port as a server
  */
 
 
